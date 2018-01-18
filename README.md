@@ -1,4 +1,5 @@
-Join the [ServiceStack Google+ Community](https://plus.google.com/communities/112445368900682590445) or follow [@ServiceStack](https://twitter.com/servicestack) for updates. 
+Follow [@ServiceStack](https://twitter.com/servicestack) or join the [Google+ Community](https://plus.google.com/communities/112445368900682590445)
+for updates, or [StackOverflow](http://stackoverflow.com/questions/ask) or the [Customer Forums](https://forums.servicestack.net/) for support.
 
 # Fast, Simple, Typed ORM for .NET
 
@@ -39,20 +40,25 @@ level public properties.
 ### 8 flavours of OrmLite is on NuGet: 
 
   - [ServiceStack.OrmLite.SqlServer](http://nuget.org/List/Packages/ServiceStack.OrmLite.SqlServer)
+  - [ServiceStack.OrmLite.Sqlite](http://nuget.org/packages/ServiceStack.OrmLite.Sqlite)
   - [ServiceStack.OrmLite.PostgreSQL](http://nuget.org/List/Packages/ServiceStack.OrmLite.PostgreSQL)
   - [ServiceStack.OrmLite.MySql](http://nuget.org/List/Packages/ServiceStack.OrmLite.MySql)
-  - [ServiceStack.OrmLite.Sqlite.Mono](http://nuget.org/packages/ServiceStack.OrmLite.Sqlite.Mono) - Compatible with Mono / Windows (x86) 
-  - [ServiceStack.OrmLite.Sqlite.Windows](http://nuget.org/List/Packages/ServiceStack.OrmLite.Sqlite.Windows) - 32/64bit Mixed mode .NET for Windows only 
-  - [ServiceStack.OrmLite.Oracle](http://nuget.org/packages/ServiceStack.OrmLite.Oracle) (unofficial)
-  - [ServiceStack.OrmLite.Firebird](http://nuget.org/List/Packages/ServiceStack.OrmLite.Firebird)  (unofficial)
-  - [ServiceStack.OrmLite.VistaDb](http://nuget.org/List/Packages/ServiceStack.OrmLite.VistaDb)  (unofficial)
+  - [ServiceStack.OrmLite.MySqlConnector](http://nuget.org/List/Packages/ServiceStack.OrmLite.MySqlConnector)
 
-.NET Core packages:   
+These packages contain both **.NET Framework v4.5** and **.NET Standard 2.0** versions and supports both .NET Framework and .NET Core projects.
+
+The `.Core` packages contains only **.NET Standard 2.0** versions which can be used in ASP.NET Core Apps running on the .NET Framework:
 
   - [ServiceStack.OrmLite.SqlServer.Core](http://nuget.org/List/Packages/ServiceStack.OrmLite.SqlServer.Core)
   - [ServiceStack.OrmLite.PostgreSQL.Core](http://nuget.org/List/Packages/ServiceStack.OrmLite.PostgreSQL.Core)
   - [ServiceStack.OrmLite.MySql.Core](http://nuget.org/List/Packages/ServiceStack.OrmLite.MySql.Core)
   - [ServiceStack.OrmLite.Sqlite.Core](http://nuget.org/packages/ServiceStack.OrmLite.Sqlite.Core) 
+
+Unofficial Releases maintained by ServiceStack Community:
+
+  - [ServiceStack.OrmLite.Oracle](http://nuget.org/packages/ServiceStack.OrmLite.Oracle)
+  - [ServiceStack.OrmLite.Firebird](http://nuget.org/List/Packages/ServiceStack.OrmLite.Firebird)
+  - [ServiceStack.OrmLite.VistaDb](http://nuget.org/List/Packages/ServiceStack.OrmLite.VistaDb)
 
 _Latest v4+ on NuGet is a [commercial release](https://servicestack.net/ormlite) with [free quotas](https://servicestack.net/download#free-quotas)._
 
@@ -193,7 +199,7 @@ Currently only a limited number of RDBMS providers offer async API's, which at t
   - [MySQL .NET 4.5+](https://www.nuget.org/packages/ServiceStack.OrmLite.MySql)
 
 We've also added a 
-[.NET 4.5 build for Sqlite](https://www.nuget.org/packages/ServiceStack.OrmLite.Sqlite.Mono) 
+[.NET 4.5 build for Sqlite](https://www.nuget.org/packages/ServiceStack.OrmLite.Sqlite) 
 as it's a common use-case to swapout to use Sqlite's in-memory provider for faster tests. 
 But as Sqlite doesn't provide async API's under-the-hood we fallback to *pseudo async* support where we just wrap its synchronous responses in `Task` results. 
 
@@ -367,14 +373,19 @@ db.UpdateOnly(() => new Person { FirstName = "JJ" }, where: p => p.LastName == "
 
 Alternatively you can pass in a POCO directly, in which case the first expression in an `UpdateOnly` 
 statement is used to specify which fields should be updated:
+
 ```csharp
 db.UpdateOnly(new Person { FirstName = "JJ" }, onlyFields: p => p.FirstName);
-```
-```csharp
+
 db.UpdateOnly(new Person { FirstName = "JJ", Age = 12 }, 
     onlyFields: p => new { p.FirstName, p.Age });
+
+db.UpdateOnly(new Person { FirstName = "JJ", Age = 12 }, 
+    onlyFields: p => new[] { "Name", "Age" });
 ```
+
 When present, the second expression is used as the where filter:
+
 ```csharp
 db.UpdateOnly(new Person { FirstName = "JJ" }, 
     onlyFields: p => p.FirstName, 
@@ -406,21 +417,17 @@ The `UpdateAdd` API provides several Typed API's for updating existing values:
 ```csharp
 //Increase everyone's Score by 3 points
 db.UpdateAdd(() => new Person { Score = 3 }); 
-db.UpdateAdd(new Person { Score = 3 }, updateFields: x => x.Score); 
 
 //Remove 5 points from Jackson Score
-db.UpdateAdd(() => new Person { Score = -5 }, x => where: x.LastName == "Jackson");
-db.UpdateAdd(new Person { Score = -5 }, x => x.Score, x => where: x.LastName == "Jackson");
+db.UpdateAdd(() => new Person { Score = -5 }, where: x => x.LastName == "Jackson");
 
 //Graduate everyone and increase everyone's Score by 2 points 
-var q = db.From<Person>().Update(x => new { x.Points, x.Graduated });
-db.UpdateAdd(new Person { Points = 2, Graduated = true }, q);
+db.UpdateAdd(() => new Person { Points = 2, Graduated = true });
 
 //Add 10 points to Michael's score
 var q = db.From<Person>()
-    .Where(x => x.FirstName == "Michael")
-    .Update(x => x.Points);
-db.UpdateAdd(new Person { Points = 10 }, q);
+    .Where(x => x.FirstName == "Michael");
+db.UpdateAdd(() => new Person { Points = 10 }, q);
 ```
 
 > Note: Any non-numeric values in an `UpdateAdd` statement (e.g. strings) are replaced as normal.
@@ -491,11 +498,247 @@ The API is minimal, providing basic shortcuts for the primitive SQL statements:
 
 [![OrmLite API](https://raw.githubusercontent.com/ServiceStack/Assets/master/img/ormlite/OrmLiteApi.png)](https://raw.githubusercontent.com/ServiceStack/Assets/master/img/ormlite/OrmLiteApi.png)
 
-### Notes
+OrmLite makes available most of its functionality via extension methods to add enhancments over ADO.NET's `IDbConnection`, providing 
+a Typed RDBMS-agnostic API that transparently handles differences in each supported RDBMS provider.
 
-OrmLite Extension methods hang off ADO.NET's `IDbConnection`.
+## Create Tables Schemas
 
-`CreateTable<T>` and `DropTable<T>` create and drop tables based on a classes type definition (only public properties used).
+OrmLite is able to **CREATE**, **DROP** and **ALTER** RDBMS Tables from your code-first Data Models with rich annotations for 
+controlling how the underlying RDBMS Tables are constructed. 
+
+The Example below utilizes several annotations to customize the definition and behavior of RDBMS tables based on a POCOs 
+**public properties**:
+
+```csharp
+public class Player
+{
+    public int Id { get; set; }                     // 'Id' is PrimaryKey by convention
+
+    [Required]
+    public string FirstName { get; set; }           // Creates NOT NULL Column
+
+    [Alias("Surname")]                              // Maps to [Surname] RDBMS column
+    public string LastName { get; set; }
+
+    [Index(Unique = true)]                          // Creates Unique Index
+    public string Email { get; set; }
+
+    public List<Phone> PhoneNumbers { get; set; }   // Complex Types blobbed by default
+
+    [Reference]
+    public List<GameItem> GameItems { get; set; }   // 1:M Reference Type saved separately
+
+    [Reference]
+    public Profile Profile { get; set; }            // 1:1 Reference Type saved separately
+    public int ProfileId { get; set; }              // 1:1 Self Ref Id on Parent Table
+
+    [ForeignKey(typeof(Level), OnDelete="CASCADE")] // Creates ON DELETE CASCADE Constraint
+    public Guid SavedLevelId { get; set; }          // Creates Foreign Key Reference
+
+    public ulong RowVersion { get; set; }           // Optimistic Concurrency Updates
+}
+
+public class Phone                                  // Blobbed Type only
+{
+    public PhoneKind Kind { get; set; }
+    public string Number { get; set; }
+    public string Ext { get; set; }
+}
+
+public enum PhoneKind
+{
+    Home,
+    Mobile,
+    Work,
+}
+
+[Alias("PlayerProfile")]                            // Maps to [PlayerProfile] RDBMS Table
+[CompositeIndex(nameof(Username), nameof(Region))]  // Creates Composite Index
+public class Profile
+{
+    [AutoIncrement]                                 // Auto Insert Id assigned by RDBMS
+    public int Id { get; set; }
+
+    public PlayerRole Role { get; set; }            // Native support for Enums
+    public Region Region { get; set; }
+    public string Username { get; set; }
+    public long HighScore { get; set; }
+
+    [Default(1)]                                    // Created in RDBMS with DEFAULT (1)
+    public long GamesPlayed { get; set; }
+
+    [CheckConstraint("Energy BETWEEN 0 AND 100")]   // Creates RDBMS Check Constraint
+    public short Energy { get; set; }
+
+    public string ProfileUrl { get; set; }
+    public Dictionary<string, string> Meta { get; set; }
+}
+
+public enum PlayerRole                              // Enums saved as strings by default
+{
+    Leader,
+    Player,
+    NonPlayer,
+}
+
+[EnumAsInt]                                         // Enum Saved as int
+public enum Region
+{
+    Africa = 1,
+    Americas = 2,
+    Asia = 3,
+    Australasia = 4,
+    Europe = 5,
+}
+
+public class GameItem
+{
+    [PrimaryKey]                                    // Specify field to use as Primary Key
+    [StringLength(50)]                              // Creates VARCHAR COLUMN
+    public string Name { get; set; }
+
+    public int PlayerId { get; set; }               // Foreign Table Reference Id
+
+    [StringLength(StringLengthAttribute.MaxText)]   // Creates "TEXT" RDBMS Column 
+    public string Description { get; set; }
+
+    [Default(OrmLiteVariables.SystemUtc)]           // Populated with UTC Date by RDBMS
+    public DateTime DateAdded { get; set; }
+}
+
+public class Level
+{
+    public Guid Id { get; set; }                    // Unique Identifer/GUID Primary Key
+    public byte[] Data { get; set; }                // Saved as BLOB/Binary where possible
+}
+```
+
+We can drop the existing tables and re-create the above table definitions with:
+
+```csharp
+using (var db = dbFactory.Open())
+{
+    if (db.TableExists<Level>())
+        db.DeleteAll<Level>();                      // Delete ForeignKey data if exists
+
+    //DROP and CREATE ForeignKey Tables in dependent order
+    db.DropTable<Player>();
+    db.DropTable<Level>();
+    db.CreateTable<Level>();
+    db.CreateTable<Player>();
+
+    //DROP and CREATE tables without Foreign Keys in any order
+    db.DropAndCreateTable<Profile>();
+    db.DropAndCreateTable<GameItem>();
+
+    var savedLevel = new Level
+    {
+        Id = Guid.NewGuid(),
+        Data = new byte[]{ 1, 2, 3, 4, 5 },
+    };
+    db.Insert(savedLevel);
+
+    var player = new Player
+    {
+        Id = 1,
+        FirstName = "North",
+        LastName = "West",
+        Email = "north@west.com",
+        PhoneNumbers = new List<Phone>
+        {
+            new Phone { Kind = PhoneKind.Mobile, Number = "123-555-5555"},
+            new Phone { Kind = PhoneKind.Home,   Number = "555-555-5555", Ext = "123"},
+        },
+        GameItems = new List<GameItem>
+        {
+            new GameItem { Name = "WAND", Description = "Golden Wand of Odyssey"},
+            new GameItem { Name = "STAFF", Description = "Staff of the Magi"},
+        },
+        Profile = new Profile
+        {
+            Username = "north",
+            Role = PlayerRole.Leader,
+            Region = Region.Australasia,
+            HighScore = 100,
+            GamesPlayed = 10,
+            ProfileUrl = "https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50.jpg",
+            Meta = new Dictionary<string, string>
+            {
+                {"Quote", "I am gamer"}
+            },
+        },
+        SavedLevelId = savedLevel.Id,
+    };
+    db.Save(player, references: true);
+}
+```
+
+This will add a record in all the above tables with all the Reference data properties automatically populated which we can quickly see
+by selecting the inserted `Player` record and all its referenced data by using [OrmLite's Load APIs](#querying-pocos-with-references), e.g:
+
+```csharp
+var dbPlayer = db.LoadSingleById<Player>(player.Id);
+
+dbPlayer.PrintDump();
+```
+
+Which uses the [Dump Utils](http://docs.servicestack.net/dump-utils) to quickly display the populated data to the console:
+
+    {
+        Id: 1,
+        FirstName: North,
+        LastName: West,
+        Email: north@west.com,
+        PhoneNumbers: 
+        [
+            {
+                Kind: Mobile,
+                Number: 123-555-5555
+            },
+            {
+                Kind: Home,
+                Number: 555-555-5555,
+                Ext: 123
+            }
+        ],
+        GameItems: 
+        [
+            {
+                Name: WAND,
+                PlayerId: 1,
+                Description: Golden Wand of Odyssey,
+                DateAdded: 2018-01-17T07:53:45-05:00
+            },
+            {
+                Name: STAFF,
+                PlayerId: 1,
+                Description: Staff of the Magi,
+                DateAdded: 2018-01-17T07:53:45-05:00
+            }
+        ],
+        Profile: 
+        {
+            Id: 1,
+            Role: Leader,
+            Region: Australasia,
+            Username: north,
+            HighScore: 100,
+            GamesPlayed: 10,
+            Energy: 0,
+            ProfileUrl: "https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50.jpg",
+            Meta: 
+            {
+                Quote: I am gamer
+            }
+        },
+        ProfileId: 1,
+        SavedLevelId: 7690dfa4d31949ab9bce628c34d1c549,
+        RowVersion: 2
+    }
+
+Feel free to continue expirementing with [this Example Live on Gistlyn](https://gistlyn.com/?gist=840bc7f09292ad5753d07cef6063893e&collection=991db51e44674ad01d3d318b24cf0934).
+
+## Select APIs
 
 If your SQL doesn't start with a **SELECT** statement, it is assumed a WHERE clause is being provided, e.g:
 
@@ -586,6 +829,18 @@ SingleById(s), SelectById(s), etc provide strong-typed convenience methods to fe
 ```csharp
 var track = db.SingleById<Track>(1);
 var tracks = db.SelectByIds<Track>(new[]{ 1,2,3 });
+```
+
+### Parametrized IN Values
+
+OrmLite also supports providing collection of values which is automatically split into multiple DB parameters to simplify executing parameterized SQL with multiple IN Values, e.g:
+
+```csharp
+var ids = new[]{ 1, 2, 3};
+var results = db.Select<Table>("Id in (@ids)", new { ids });
+
+var names = new List<string>{ "foo", "bar", "qux" };
+var results = db.SqlList<Table>("SELECT * FROM Table WHERE Name IN (@names)", new { names });
 ```
 
 ### Lazy Queries
@@ -849,11 +1104,61 @@ The mapping also includes a fallback for referencing fully-qualified names in th
 
 ## Dynamic Result Sets
 
-There's new support for returning unstructured resultsets letting you Select `List<object>` instead of having results mapped to a concrete Poco class, e.g:
+In addition to populating Typed POCOs, OrmLite has a number of flexible options for accessing dynamic resultsets with adhoc schemas:
+
+### C# 7 Value Tuples
+ 
+The C# 7 Value Tuple support enables a terse, clean and typed API for accessing the Dynamic Result Sets returned when using a custom Select expression:
 
 ```csharp
-db.Select<List<object>>(db.From<Poco>()
-  .Select("COUNT(*), MIN(Id), MAX(Id)"))[0].PrintDump();
+var query = db.From<Employee>()
+    .Join<Department>()
+    .OrderBy(e => e.Id)
+    .Select<Employee, Department>(
+        (e, d) => new { e.Id, e.LastName, d.Name });
+ 
+var results = db.Select<(int id, string lastName, string deptName)>(query);
+ 
+var row = results[i];
+$"row: ${row.id}, ${row.lastName}, ${row.deptName}".Print();
+```
+ 
+Full Custom SQL Example:
+ 
+```csharp
+var results = db.SqlList<(int count, string min, string max, int sum)>(
+    "SELECT COUNT(*), MIN(Word), MAX(Word), Sum(Total) FROM Table");
+```
+ 
+Partial Custom SQL Select Example:
+ 
+```csharp
+var query = db.From<Table>()
+    .Select("COUNT(*), MIN(Word), MAX(Word), Sum(Total)");
+ 
+var result = db.Single<(int count, string min, string max, int sum)>(query);
+```
+ 
+Same as above, but using Typed APIs:
+ 
+```csharp
+var result = db.Single<(int count, string min, string max, int sum)>(
+    db.From<Table>()
+        .Select(x => new {
+            Count = Sql.Count("*"),
+            Min = Sql.Min(x.Word),
+            Max = Sql.Max(x.Word),
+            Sum = Sql.Sum(x.Total)
+        }));
+```
+
+There's also support for returning unstructured resultsets in `List<object>`, e.g:
+
+```csharp
+var results = db.Select<List<object>>(db.From<Poco>()
+  .Select("COUNT(*), MIN(Id), MAX(Id)"));
+
+results[0].PrintDump();
 ```
 
 Output of objects in the returned `List<object>`:
@@ -867,8 +1172,10 @@ Output of objects in the returned `List<object>`:
 You can also Select `Dictionary<string,object>` to return a dictionary of column names mapped with their values, e.g:
 
 ```csharp
-db.Select<Dictionary<string,object>>(db.From<Poco>()
-  .Select("COUNT(*) Total, MIN(Id) MinId, MAX(Id) MaxId"))[0].PrintDump();
+var results = db.Select<Dictionary<string,object>>(db.From<Poco>()
+  .Select("COUNT(*) Total, MIN(Id) MinId, MAX(Id) MaxId"));
+
+results[0].PrintDump();
 ```
 
 Output of objects in the returned `Dictionary<string,object>`:
@@ -882,8 +1189,8 @@ Output of objects in the returned `Dictionary<string,object>`:
 and can be used for API's returning a **Single** row result:
 
 ```csharp
-db.Single<List<object>>(db.From<Poco>()
-  .Select("COUNT(*) Total, MIN(Id) MinId, MAX(Id) MaxId")).PrintDump();
+var result = db.Single<List<object>>(db.From<Poco>()
+  .Select("COUNT(*) Total, MIN(Id) MinId, MAX(Id) MaxId"));
 ```
 
 or use `object` to fetch an unknown **Scalar** value:
@@ -1249,6 +1556,33 @@ Optimistic concurrency is only verified on API's that update or delete an entire
 ```csharp
 db.DeleteById<Poco>(id:updatedRow.Id, rowversion:updatedRow.RowVersion)
 ```
+
+### RowVersion Byte Array
+
+To improve reuse of OrmLite's Data Models in Dapper, OrmLite also supports `byte[] RowVersion` which lets you use OrmLite Data Models with `byte[] RowVersion` properties in Dapper queries.
+
+## Conflict Resolution using commandFilter
+
+An optional `Func<IDbCommand> commandFilter` is available in all `INSERT` and `UPDATE` APIs to allow customization and inspection of the populated `IDbCommand` before it's run. 
+This feature is utilized in the [Conflict Resolution Extension methods](https://github.com/ServiceStack/ServiceStack.OrmLite/blob/master/src/ServiceStack.OrmLite/OrmLiteConflictResolutions.cs) 
+where you can specify the conflict resolution strategy when a Primary Key or Unique constraint violation occurs:
+
+```csharp
+db.InsertAll(rows, dbCmd => dbCmd.OnConflictIgnore());
+
+//Equivalent to: 
+db.InsertAll(rows, dbCmd => dbCmd.OnConflict(ConflictResolution.Ignore));
+```
+
+In this case it will ignore any conflicts that occurs and continue inserting the remaining rows in SQLite, MySql and PostgreSQL, whilst in SQL Server it's a NOOP.
+
+SQLite offers [additional fine-grained behavior](https://sqlite.org/lang_conflict.html) that can be specified for when a conflict occurs:
+
+ - ROLLBACK
+ - ABORT
+ - FAIL
+ - IGNORE
+ - REPLACE
 
 ### Modify Custom Schema
 
@@ -1792,7 +2126,7 @@ var total = pTotal.Value;
 
 More examples can be found in [SqlServerProviderTests](https://github.com/ServiceStack/ServiceStack.OrmLite/blob/master/tests/ServiceStack.OrmLite.Tests/SqlServerProviderTests.cs).
 
-## New Foreign Key attribute for referential actions on Update/Deletes
+## Foreign Key attribute for referential actions on Update/Deletes
 
 Creating a foreign key in OrmLite can be done by adding `[References(typeof(ForeignKeyTable))]` on the relation property,
 which will result in OrmLite creating the Foreign Key relationship when it creates the DB table with `db.CreateTable<Poco>`.
@@ -1894,7 +2228,7 @@ dbFactory.Run(db => db.CreateTable<MasterRecord>(overwrite:false));
 NoOfShards.Times(i => {
     var namedShard = "robots-shard" + i;
     dbFactory.RegisterConnection(namedShard, 
-        "~/App_Data/{0}.sqlite".Fmt(shardId).MapAbsolutePath(),                //Connection String
+        $"~/App_Data/{shardId}.sqlite".MapAbsolutePath(),                //Connection String
         SqliteDialect.Provider);
 	
 	dbFactory.OpenDbConnection(namedShard).Run(db => db.CreateTable<Robot>(overwrite:false));
@@ -2312,6 +2646,60 @@ db.DeleteAll<ShipperType>();
 
 Assert.That(db.Select<Shipper>(), Has.Count.EqualTo(0));
 Assert.That(db.Select<ShipperType>(), Has.Count.EqualTo(0));
+```
+
+### Soft Deletes
+
+Select Filters let you specify a custom `SelectFilter` that lets you modify queries that use `SqlExpression<T>` before they're executed. This could be used to make working with "Soft Deletes" Tables easier where it can be made to apply a custom `x.IsDeleted != true` condition on every `SqlExpression`.
+
+By either using a `SelectFilter` on concrete POCO Table Types, e.g:
+
+```csharp
+SqlExpression<Table1>.SelectFilter = q => q.Where(x => x.IsDeleted != true);
+SqlExpression<Table2>.SelectFilter = q => q.Where(x => x.IsDeleted != true);
+```
+
+Or alternatively using generic delegate that applies to all SqlExpressions, but you'll only have access to a 
+`IUntypedSqlExpression` which offers a limited API surface area but will still let you execute a custom filter 
+for all `SqlExpression<T>` that could be used to add a condition for all tables implementing a custom 
+`ISoftDelete` interface with:
+
+```csharp
+OrmLiteConfig.SqlExpressionSelectFilter = q =>
+{
+    if (q.ModelDef.ModelType.HasInterface(typeof(ISoftDelete)))
+    {
+        q.Where<ISoftDelete>(x => x.IsDeleted != true);
+    }
+};
+```
+
+Both solutions above will transparently add the `x.IsDeleted != true` to all `SqlExpression<T>` based queries
+so it only returns results which aren't `IsDeleted` from any of queries below:
+
+```csharp
+var results = db.Select(db.From<Table>());
+var result = db.Single(db.From<Table>().Where(x => x.Name == "foo"));
+var result = db.Single(x => x.Name == "foo");
+```
+
+### Check Constraints
+
+OrmLite includes support for [SQL Check Constraints](https://en.wikipedia.org/wiki/Check_constraint) which will create your Table schema with the `[CheckConstraint]` specified, e.g:
+
+```csharp
+public class Table
+{
+    [AutoIncrement]
+    public int Id { get; set; }
+
+    [Required]
+    [CheckConstraint("Age > 1")]
+    public int Age { get; set; }
+
+    [CheckConstraint("Name IS NOT NULL")]
+    public string Name { get; set; }
+}
 ```
 
 ## SQL Server Features
